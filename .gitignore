@@ -1,0 +1,12 @@
+# Credenciales locales: nunca se suben
+app/config.php
+
+# Respaldos de la base de datos
+*.sql.bak
+backups/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

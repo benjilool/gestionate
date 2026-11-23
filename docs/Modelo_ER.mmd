@@ -1,0 +1,95 @@
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    fontFamily: "Courier New, monospace"
+    fontSize: "14px"
+    lineColor: "#222222"
+  er:
+    layoutDirection: TB
+---
+erDiagram
+    usuarios ||..o{ pedidos : "registra"
+    usuarios ||..o{ movimientos_inventario : "realiza"
+    categorias_platos ||..o{ platos : "agrupa"
+    platos ||--o{ plato_ingredientes : "se compone de"
+    ingredientes ||--o{ plato_ingredientes : "se usa en"
+    pedidos ||..|{ detalle_pedidos : "contiene"
+    platos ||..o{ detalle_pedidos : "se solicita en"
+    ingredientes ||..o{ movimientos_inventario : "registra movimientos"
+    pedidos |o..o{ movimientos_inventario : "origina salida"
+
+    usuarios {
+        int id_usuario PK "AUTO_INCREMENT"
+        varchar nombre "NOT NULL"
+        varchar correo UK "UNIQUE NOT NULL"
+        varchar password_hash "NOT NULL (bcrypt)"
+        enum rol "administrador, cocina, garzon"
+        boolean activo "NOT NULL DEFAULT TRUE"
+        datetime creado_en "DEFAULT CURRENT_TIMESTAMP"
+    }
+    categorias_platos {
+        int id_categoria PK "AUTO_INCREMENT"
+        varchar nombre_categoria UK "UNIQUE NOT NULL"
+        varchar descripcion "NULL"
+    }
+    platos {
+        int id_plato PK "AUTO_INCREMENT"
+        int id_categoria FK "NOT NULL - ON DELETE RESTRICT"
+        varchar nombre "NOT NULL"
+        text descripcion "NULL"
+        int precio "NOT NULL CHECK > 0"
+        int tiempo_preparacion_minutos "NOT NULL DEFAULT 10"
+        enum estado "disponible, agotado, inactivo"
+    }
+    ingredientes {
+        int id_ingrediente PK "AUTO_INCREMENT"
+        varchar nombre UK "UNIQUE NOT NULL"
+        enum unidad_medida "kg, gr, litro, ml, unidad"
+        decimal stock_actual "NOT NULL DEFAULT 0.00 CHECK >= 0"
+        decimal stock_minimo_alerta "NOT NULL DEFAULT 1.00"
+        datetime fecha_actualizacion "ON UPDATE CURRENT_TIMESTAMP"
+    }
+    plato_ingredientes {
+        int id_plato PK, FK "ON DELETE CASCADE"
+        int id_ingrediente PK, FK "ON DELETE RESTRICT"
+        decimal cantidad_requerida "NOT NULL CHECK > 0"
+    }
+    pedidos {
+        int id_pedido PK "AUTO_INCREMENT"
+        int id_usuario FK "NOT NULL - garzon"
+        varchar numero_mesa "NULL si es para llevar"
+        enum tipo_pedido "local, llevar"
+        enum estado "pendiente, en_preparacion, listo, entregado, cancelado"
+        datetime fecha_hora_ingreso "DEFAULT CURRENT_TIMESTAMP - orden FIFO"
+        datetime fecha_inicio_preparacion "NULL"
+        datetime fecha_listo "NULL - tiempo real"
+    }
+    detalle_pedidos {
+        int id_detalle PK "AUTO_INCREMENT"
+        int id_pedido FK "ON DELETE CASCADE"
+        int id_plato FK "NOT NULL - ON DELETE RESTRICT"
+        int cantidad "NOT NULL DEFAULT 1 CHECK > 0"
+        varchar observaciones "NULL"
+    }
+    movimientos_inventario {
+        int id_movimiento PK "AUTO_INCREMENT"
+        int id_ingrediente FK "NOT NULL"
+        int id_usuario FK "NOT NULL"
+        int id_pedido FK "NULL - ON DELETE SET NULL"
+        enum tipo "entrada, salida_venta, merma, ajuste"
+        decimal cantidad "NOT NULL CHECK > 0"
+        decimal stock_resultante "NOT NULL"
+        varchar motivo "NULL"
+        datetime fecha "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    style usuarios fill:#FCEFFC,stroke:#D65BE0,stroke-width:2px
+    style categorias_platos fill:#FFF9E5,stroke:#E0B400,stroke-width:2px
+    style platos fill:#FFF5EB,stroke:#F08A24,stroke-width:2px
+    style ingredientes fill:#EDFBF7,stroke:#2CC9A6,stroke-width:2px
+    style plato_ingredientes fill:#ECFCFD,stroke:#22C3D6,stroke-width:2px
+    style pedidos fill:#EEFBEF,stroke:#4CC45A,stroke-width:2px
+    style detalle_pedidos fill:#F3F1FE,stroke:#9A7AEE,stroke-width:2px
+    style movimientos_inventario fill:#FDEEEE,stroke:#E0525B,stroke-width:2px
