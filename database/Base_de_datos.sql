@@ -63,7 +63,7 @@ CREATE TABLE platos (
   id_categoria                INT NOT NULL,
   nombre                      VARCHAR(100) NOT NULL,
   descripcion                 TEXT NULL,
-  precio                      INT NOT NULL CHECK (precio > 0),
+  precio                      INT NOT NULL CHECK (precio >= 0),  -- 0 = agregado incluido en el menú
   tiempo_preparacion_minutos  INT NOT NULL DEFAULT 10
                               CHECK (tiempo_preparacion_minutos > 0),
   estado                      ENUM('disponible','agotado','inactivo')
@@ -404,50 +404,70 @@ INSERT INTO usuarios (nombre, correo, password_hash, rol) VALUES
 
 INSERT INTO categorias_platos (nombre_categoria, descripcion) VALUES
 ('Fondos',      'Platos principales del menú del día'),
-('Postres',     'Postres caseros'),
-('Bebestibles', 'Bebidas y jugos');
+('Agregados',   'Acompañamientos incluidos con el fondo'),
+('Bebestibles', 'Bebidas');
 
--- Ingredientes parten en 0: el stock inicial se carga como "entrada"
+-- Stock en PORCIONES para lo que el local prepara cada mañana (cazuela, pollo)
+-- y en kg/litros para lo que se sirve por medida (arroz, fideos, papas, aceite).
+-- Los ingredientes parten en 0: el stock inicial se carga como "entrada"
 -- para que quede en el historial de movimientos.
 INSERT INTO ingredientes (nombre, unidad_medida, stock_minimo_alerta) VALUES
-('Posta Negra (Carne)',    'kg',     1.00),
-('Pechuga de Pollo',       'kg',     1.00),
-('Arroz Grado 1',          'kg',     2.00),
-('Papas para Puré',        'kg',     2.00),
-('Pino Empanada / Pastel', 'kg',     1.50),
-('Leche Asada (porción)',  'unidad', 5.00),
-('Bebida en lata 350 ml',  'unidad', 10.00);
+('Cazuela de vacuno (porción)', 'unidad', 5.00),
+('Pollo arvejado (porción)',    'unidad', 4.00),
+('Pescado (filete)',            'unidad', 3.00),
+('Arroz',                       'kg',     0.50),
+('Fideos',                      'kg',     0.50),
+('Papas para puré',             'kg',     1.00),
+('Aceite para freír',           'litro',  0.50),
+('Bebida en lata 350 ml',       'unidad', 10.00),
+('Vino tinto botella 750 ml',   'unidad', 3.00),
+('Cerveza botella 330 ml',      'unidad', 6.00);
 
+-- Tiempos estimados por la dueña del restaurante piloto (entrevista 23/11/2026):
+-- cazuela y pollo salen en unos 5 minutos; el pescado frito es lo más lento.
+-- El tiempo del pescado (12 min) es PROVISIONAL hasta cronometrarlo.
+-- Precios: almuerzo a $4.700 (dato del local). Bebestibles: precios referenciales, a confirmar.
 INSERT INTO platos (id_categoria, nombre, descripcion, precio,
                     tiempo_preparacion_minutos) VALUES
-(1, 'Carne al Jugo con Arroz',     'Posta negra cocinada a fuego lento con porción de arroz', 5500, 15),
-(1, 'Pollo a la Plancha con Puré', 'Filete de pechuga grillada con puré casero',             5000, 12),
-(1, 'Pastel de Papas Casero',      'Pastel en greda con pino de carne y huevo',              5200, 20),
-(2, 'Leche Asada',                 'Postre casero',                                          1800,  2),
-(3, 'Bebida en lata',              'Bebida 350 ml',                                          1200,  1);
+(1, 'Cazuela de vacuno', 'Cazuela del día con papa, zapallo y choclo', 4700,  5),
+(1, 'Pollo arvejado',    'Pollo guisado con arvejas',                  4700,  5),
+(1, 'Pescado frito',     'Filete de pescado frito al momento',         4700, 12),
+(2, 'Arroz',             'Agregado incluido',                             0,  1),
+(2, 'Fideos',            'Agregado incluido',                             0,  1),
+(2, 'Puré',              'Agregado incluido',                             0,  2),
+(3, 'Bebida en lata',    'Bebida 350 ml',                              1200,  1),
+(3, 'Vino tinto (botella)', 'Botella 750 ml',                           9000,  1),
+(3, 'Cerveza (botella)', 'Botella 330 ml',                              2500,  1);
 
 INSERT INTO plato_ingredientes (id_plato, id_ingrediente, cantidad_requerida) VALUES
-(1, 1, 0.25), (1, 3, 0.15),
-(2, 2, 0.25), (2, 4, 0.30),
-(3, 5, 0.30), (3, 4, 0.25),
-(4, 6, 1.00),
-(5, 7, 1.00);
+(1, 1, 1.00),
+(2, 2, 1.00),
+(3, 3, 1.00), (3, 7, 0.05),
+(4, 4, 0.15),
+(5, 5, 0.12),
+(6, 6, 0.25),
+(7, 8, 1.00),
+(8, 9, 1.00),
+(9, 10, 1.00);
 
--- Stock inicial (usuario 1 = administrador)
-CALL sp_registrar_entrada(1,  3.50, 1, 'Inventario inicial');
-CALL sp_registrar_entrada(2,  4.00, 1, 'Inventario inicial');
-CALL sp_registrar_entrada(3, 10.00, 1, 'Inventario inicial');
-CALL sp_registrar_entrada(4,  8.00, 1, 'Inventario inicial');
-CALL sp_registrar_entrada(5,  1.20, 1, 'Inventario inicial'); -- bajo el mínimo: genera alerta
-CALL sp_registrar_entrada(6, 12.00, 1, 'Inventario inicial');
-CALL sp_registrar_entrada(7, 24.00, 1, 'Inventario inicial');
+-- Stock inicial de un día (usuario 1 = administrador)
+CALL sp_registrar_entrada(1, 20.00, 1, 'Preparación del día');
+CALL sp_registrar_entrada(2, 15.00, 1, 'Preparación del día');
+CALL sp_registrar_entrada(3,  4.00, 1, 'Compra diaria');
+CALL sp_registrar_entrada(4,  3.00, 1, 'Preparación del día');
+CALL sp_registrar_entrada(5,  2.00, 1, 'Preparación del día');
+CALL sp_registrar_entrada(6,  4.00, 1, 'Preparación del día');
+CALL sp_registrar_entrada(7,  3.00, 1, 'Compra semanal');
+CALL sp_registrar_entrada(8, 24.00, 1, 'Compra de bebidas (2 veces por semana)');
+CALL sp_registrar_entrada(9, 12.00, 1, 'Compra de bebidas (2 veces por semana)');
+CALL sp_registrar_entrada(10, 24.00, 1, 'Compra de bebidas (2 veces por semana)');
 
 -- Pedidos de demostración (garzón = usuario 3), con el mismo flujo que usará PHP
 START TRANSACTION;
 INSERT INTO pedidos (id_usuario, numero_mesa, tipo_pedido) VALUES (3, '4', 'local');
 SET @p1 = LAST_INSERT_ID();
 INSERT INTO detalle_pedidos (id_pedido, id_plato, cantidad, observaciones) VALUES
-(@p1, 1, 2, NULL), (@p1, 5, 2, NULL);
+(@p1, 1, 2, NULL), (@p1, 7, 2, NULL);
 CALL sp_descontar_stock_pedido(@p1, 3);
 COMMIT;
 
@@ -455,6 +475,17 @@ START TRANSACTION;
 INSERT INTO pedidos (id_usuario, numero_mesa, tipo_pedido) VALUES (3, NULL, 'llevar');
 SET @p2 = LAST_INSERT_ID();
 INSERT INTO detalle_pedidos (id_pedido, id_plato, cantidad, observaciones) VALUES
-(@p2, 2, 1, 'Sin sal'), (@p2, 4, 1, NULL);
+(@p2, 2, 1, NULL), (@p2, 4, 1, NULL);
 CALL sp_descontar_stock_pedido(@p2, 3);
 COMMIT;
+
+START TRANSACTION;
+INSERT INTO pedidos (id_usuario, numero_mesa, tipo_pedido) VALUES (3, '2', 'local');
+SET @p3 = LAST_INSERT_ID();
+INSERT INTO detalle_pedidos (id_pedido, id_plato, cantidad, observaciones) VALUES
+(@p3, 3, 1, 'Bien dorado'), (@p3, 6, 1, NULL);
+CALL sp_descontar_stock_pedido(@p3, 3);
+COMMIT;
+-- Quedan 3 filetes de pescado: igual al mínimo, así el panel muestra la alerta.
+-- Prueba para la demo: un pedido de 5 pescados fritos debe ser rechazado
+-- con "Stock insuficiente de: Pescado (filete)".
