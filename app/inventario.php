@@ -7,6 +7,7 @@
  * - Historial de movimientos_inventario (entradas, ventas, mermas y ajustes).
  */
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/formato.php';
 $usuario = requerirRol(['administrador']);
 $db = obtenerConexion();
 
@@ -14,22 +15,6 @@ const MAX_ENTRADA = 9999;     // tope por entrada, evita errores de tipeo
 const MAX_DETALLE = 200;      // motivo + detalle caben en movimientos_inventario.motivo (255)
 const LIMITE_HISTORIAL = 50;
 const MOTIVOS = ['Preparación del día', 'Compra'];
-
-/** Muestra 3.00 como "3" y 2.50 como "2,5" (formato chileno, sin ceros de más). */
-function formatoCantidad(string|float $numero): string
-{
-    return rtrim(rtrim(number_format((float) $numero, 2, ',', '.'), '0'), ',');
-}
-
-/** Abreviatura de la unidad para las tablas. */
-function unidadCorta(string $unidad): string
-{
-    return match ($unidad) {
-        'unidad' => 'u.',
-        'litro'  => 'L',
-        default  => $unidad,
-    };
-}
 
 $ingredientes = $db->query(
     'SELECT id_ingrediente, nombre, unidad_medida, stock_actual, stock_minimo_alerta,
@@ -52,9 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motivo        = (string) filter_input(INPUT_POST, 'motivo');
     $detalle       = trim((string) filter_input(INPUT_POST, 'detalle'));
 
-    // En Chile se escribe "2,5": se acepta la coma como separador decimal
-    $cantidad = filter_var(str_replace(',', '.', $cantidadTexto), FILTER_VALIDATE_FLOAT);
-    $cantidad = $cantidad === false ? 0 : round($cantidad, 2);   // la columna guarda 2 decimales
+    $cantidad = leerDecimal($cantidadTexto) ?? 0;
 
     if (!validarCsrf($_POST['csrf'] ?? null)) {
         $error = 'La sesión expiró. Intenta de nuevo.';

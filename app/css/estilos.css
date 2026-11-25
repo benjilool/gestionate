@@ -134,6 +134,32 @@ a.modulo:hover { border-color: var(--tomate); }
 .num--mas { color: #1d6b3d; font-weight: 600; }
 .nota { color: var(--gris); font-size: .85rem; margin: .75rem 0 0; }
 
+/* Catálogo: platos, categorías e ingredientes */
+.pestanas { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.pestanas a { padding: .5rem 1rem; border-radius: 999px; background: var(--blanco); border: 1px solid var(--borde);
+              color: var(--texto); text-decoration: none; font-weight: 600; }
+.pestanas a.activa { background: var(--carbon); border-color: var(--carbon); color: var(--blanco); }
+.btn--chico { display: inline-block; padding: .45rem .8rem; font-size: .9rem; background: #ecebe7;
+              color: var(--texto); text-decoration: none; }
+.btn--peligro { background: #fdecea; color: #8a2416; }
+.acciones { display: flex; gap: .4rem; white-space: nowrap; }   /* en pantallas angostas la tabla se desplaza */
+.acciones form { margin: 0; }
+.cancelar { grid-column: 1 / -1; text-align: center; color: var(--gris); }
+.ayuda { font-weight: 400; color: var(--gris); font-size: .85rem; }
+.formulario__ancho { grid-column: 1 / -1; }
+.receta { border: 1px solid var(--borde); border-radius: var(--radio); padding: .75rem 1rem; margin: 0;
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .5rem 1.5rem; }
+.receta legend { font-weight: 700; padding: 0 .3rem; }
+.receta .nota { grid-column: 1 / -1; margin: 0 0 .25rem; }
+.formulario .receta__linea { flex-direction: row; align-items: center; justify-content: space-between;
+              gap: .5rem; font-weight: 400; }
+.receta__campo { display: flex; align-items: center; gap: .4rem; white-space: nowrap; color: var(--gris); }
+.formulario .receta__campo input { width: 5.5rem; text-align: right; }
+.receta__resumen { font-size: .9rem; color: var(--gris); min-width: 180px; }
+.fila--inactiva td { opacity: .55; }
+.etiqueta--agotado { background: var(--tomate); color: var(--blanco); }
+.etiqueta--inactivo { background: #ecebe7; color: var(--gris); }
+
 .pie { text-align: center; color: var(--gris); font-size: .8rem; padding: 1rem; }
 
 @media (max-width: 600px) {
