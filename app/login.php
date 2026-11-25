@@ -68,7 +68,9 @@ require __DIR__ . '/includes/header.php';
 ?>
 <main class="login">
     <form class="tarjeta login__form" method="post" action="login.php" novalidate>
-        <h1 class="marca">Gesti<span>Ó</span>nate</h1>
+        <h1 class="marca">
+            <img class="marca__icono marca__icono--grande" src="img/icono.png" alt="" width="52" height="52">Gesti<span>Ó</span>nate
+        </h1>
         <p class="sub">Pedidos y stock de tu cocina, en orden.</p>
 
         <?php if ($error): ?>

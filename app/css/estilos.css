@@ -29,6 +29,9 @@ h2 { font-size: 1.15rem; margin: 0 0 .75rem; }
 .marca { font-size: 2.2rem; font-weight: 800; letter-spacing: -.5px; margin: 0; color: var(--carbon); }
 .marca span { color: var(--tomate); }
 .marca--chica { font-size: 1.3rem; text-decoration: none; color: var(--blanco); }
+/* Ícono: la "Ó" convertida en reloj de cocina (anillo que se completa, como el tiempo de cada pedido) */
+.marca__icono { width: 28px; height: 28px; vertical-align: middle; margin: -4px .4rem 0 0; }
+.marca__icono--grande { width: 52px; height: 52px; margin-top: -8px; }
 
 /* Botones */
 .btn { font: inherit; border: 0; border-radius: var(--radio); padding: .7rem 1.2rem;
@@ -159,6 +162,15 @@ a.modulo:hover { border-color: var(--tomate); }
 .fila--inactiva td { opacity: .55; }
 .etiqueta--agotado { background: var(--tomate); color: var(--blanco); }
 .etiqueta--inactivo { background: #ecebe7; color: var(--gris); }
+
+/* Página sin permiso (403) */
+.sin-permiso { display: grid; place-items: center; }
+.sin-permiso__caja { max-width: 460px; text-align: center; display: flex; flex-direction: column;
+                     align-items: center; gap: .5rem; margin-top: 2rem; }
+.sin-permiso__caja p { color: var(--gris); margin: 0 0 1rem; }
+.sin-permiso__caja .btn { text-decoration: none; }
+.modo-cocina .sin-permiso__caja { background: var(--carbon-2); border-color: var(--carbon-2); }
+.modo-cocina .sin-permiso__caja p { color: #bbb; }
 
 .pie { text-align: center; color: var(--gris); font-size: .8rem; padding: 1rem; }
 

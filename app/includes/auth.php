@@ -50,7 +50,8 @@ function requerirRol(array $rolesPermitidos = []): array
     }
     if ($rolesPermitidos && !in_array($usuario['rol'], $rolesPermitidos, true)) {
         http_response_code(403);
-        exit('No tienes permiso para ver esta página.');
+        require __DIR__ . '/sin_permiso.php';
+        exit;
     }
     return $usuario;
 }

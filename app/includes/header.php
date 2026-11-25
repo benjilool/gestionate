@@ -11,12 +11,16 @@ $usuario = usuarioActual();
         <meta http-equiv="refresh" content="<?= (int) $refrescarCada ?>">
     <?php endif; ?>
     <title><?= e($tituloPagina ?? 'GestiÓnate') ?> · GestiÓnate</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/icono.png">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body class="<?= e($claseBody ?? '') ?>">
 <?php if ($usuario): ?>
     <header class="barra">
-        <a class="marca marca--chica" href="index.php">Gesti<span>Ó</span>nate</a>
+        <a class="marca marca--chica" href="index.php">
+            <img class="marca__icono" src="img/icono.png" alt="" width="28" height="28">Gesti<span>Ó</span>nate
+        </a>
         <nav class="barra__nav">
             <?php if (in_array($usuario['rol'], ['administrador', 'garzon'], true)): ?>
                 <a href="panel.php">Panel</a>
