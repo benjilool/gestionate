@@ -60,7 +60,7 @@ require __DIR__ . '/includes/header.php';
         <a class="tarjeta modulo" href="pedido_nuevo.php"><strong>Tomar pedido</strong><span>Mesa o para llevar, con descuento de stock</span></a>
         <?php if ($usuario['rol'] === 'administrador'): ?>
             <div class="tarjeta modulo modulo--pronto"><strong>Platos y recetas</strong><span>Próxima versión</span></div>
-            <div class="tarjeta modulo modulo--pronto"><strong>Inventario</strong><span>Próxima versión</span></div>
+            <a class="tarjeta modulo" href="inventario.php"><strong>Inventario</strong><span>Stock, entradas e historial</span></a>
         <?php endif; ?>
     </section>
 </main>

@@ -56,8 +56,8 @@ h2 { font-size: 1.15rem; margin: 0 0 .75rem; }
 /* Barra superior */
 .barra { background: var(--carbon); color: var(--blanco); display: flex; align-items: center;
          gap: 1.5rem; padding: .75rem 1.25rem; flex-wrap: wrap; }
-.barra__nav { display: flex; gap: 1rem; flex: 1; }
-.barra__nav a { color: #d9d9d9; text-decoration: none; font-weight: 600; }
+.barra__nav { display: flex; flex-wrap: wrap; gap: .5rem 1rem; flex: 1; }
+.barra__nav a { color: #d9d9d9; text-decoration: none; font-weight: 600; white-space: nowrap; }
 .barra__nav a:hover { color: var(--oro); }
 .barra__usuario { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: #cfcfcf; }
 .barra__usuario form { margin: 0; }
@@ -115,6 +115,24 @@ a.modulo:hover { border-color: var(--tomate); }
 .linea__nombre span { color: var(--gris); font-size: .9rem; }
 .linea__cant { font-size: 1.3rem !important; text-align: center; }
 .linea__obs { grid-column: 1 / -1; }
+
+/* Inventario */
+.contenedor > .tarjeta { margin-bottom: 1rem; }
+.formulario { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem 1rem;
+              align-items: end; }
+.formulario label { display: flex; flex-direction: column; gap: .3rem; font-weight: 600; font-size: .95rem; }
+.formulario input, .formulario select { font: inherit; font-weight: 400; padding: .7rem .8rem;
+              border: 1px solid var(--borde); border-radius: var(--radio); background: var(--blanco); }
+.formulario input:focus, .formulario select:focus { outline: 2px solid var(--oro); border-color: var(--oro); }
+.formulario .btn { grid-column: 1 / -1; }
+.tabla-scroll { overflow-x: auto; }   /* en celular la tabla se desplaza, no la página */
+.tabla td { vertical-align: top; }
+.fila--alerta td { background: #fdecea; }
+.etiqueta { display: inline-block; padding: .15rem .5rem; border-radius: 999px; font-size: .8rem;
+            font-weight: 700; background: #e6f4ec; color: #1d6b3d; }
+.etiqueta--alerta { background: var(--tomate); color: var(--blanco); }
+.num--mas { color: #1d6b3d; font-weight: 600; }
+.nota { color: var(--gris); font-size: .85rem; margin: .75rem 0 0; }
 
 .pie { text-align: center; color: var(--gris); font-size: .8rem; padding: 1rem; }
 

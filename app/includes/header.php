@@ -22,6 +22,9 @@ $usuario = usuarioActual();
                 <a href="panel.php">Panel</a>
                 <a href="pedido_nuevo.php">Tomar pedido</a>
             <?php endif; ?>
+            <?php if ($usuario['rol'] === 'administrador'): ?>
+                <a href="inventario.php">Inventario</a>
+            <?php endif; ?>
             <?php if (in_array($usuario['rol'], ['administrador', 'cocina'], true)): ?>
                 <a href="cocina.php">Cocina</a>
             <?php endif; ?>
