@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GestiÓnate · Pedidos en orden y stock al día</title>
+    <meta name="description" content="GestiÓnate ordena los pedidos por hora de llegada y controla el inventario según las recetas. Para restaurantes pequeños de menú del día.">
+    <meta property="og:title" content="GestiÓnate: tu stock, claro y al día">
+    <meta property="og:description" content="Pedidos en orden de llegada y control de ingredientes para restaurantes de menú del día.">
+    <meta name="theme-color" content="#003463">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2324497B'/%3E%3Ctext x='32' y='46' font-family='Arial' font-weight='700' font-size='38' text-anchor='middle' fill='%23FFBD59'%3E%C3%93%3C/text%3E%3C/svg%3E">
+
+    <style>
+        /* Colores de GestiÓnate (los mismos de la app y la presentación) */
+        :root {
+            --azul: #24497B;
+            --azul-noche: #003463;
+            --azul-medio: #406195;
+            --turquesa: #29A2BA;
+            --verde: #00BF63;
+            --amarillo: #FFBD59;
+            --naranjo: #FF914D;
+            --rojo: #FF3131;
+            --fondo: #F4FAFC;
+            --celeste: #E3F2F6;
+            --texto: #2B3445;
+            --texto-suave: #5B6577;
+            --radio: 22px;
+            --sombra: 0 10px 30px rgba(0, 52, 99, .10);
+            --sombra-alta: 0 22px 50px rgba(0, 52, 99, .18);
+            --ancho: 1120px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--texto);
+            background: var(--fondo);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        img { display: block; max-width: 100%; height: auto; }
+        a { color: inherit; text-decoration: none; }
+        button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+        .contenedor { width: 100%; max-width: var(--ancho); margin: 0 auto; padding: 0 24px; }
+        .o { color: var(--amarillo); display: inline-block; }
+
+        /* Barra de avance al bajar la página */
+        .avance {
+            position: fixed; top: 0; left: 0; height: 3px; width: 100%; z-index: 60;
+            background: linear-gradient(90deg, var(--turquesa), var(--amarillo));
+            transform-origin: 0 50%; transform: scaleX(0);
+        }
+
+        /* Botones */
+        .boton {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 14px 26px; border-radius: 999px;
+            font-weight: 650; font-size: 1rem;
+            transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .boton:hover { transform: translateY(-2px); }
+        .boton-principal { background: var(--amarillo); color: var(--azul-noche); box-shadow: 0 8px 22px rgba(255, 189, 89, .35); }
+        .boton-principal:hover { box-shadow: 0 12px 30px rgba(255, 189, 89, .55); }
+        .boton-borde { color: #fff; border: 1.5px solid rgba(255, 255, 255, .45); }
+        .boton-borde:hover { background: rgba(255, 255, 255, .1); }
+        .boton-azul { background: var(--azul); color: #fff; box-shadow: 0 8px 22px rgba(36, 73, 123, .25); }
+        .boton-azul:hover { background: var(--azul-noche); }
+        .boton-suave { background: var(--celeste); color: var(--azul); }
+        .boton-suave:hover { background: #d3eaf0; }
+
+        /* ---------- Barra superior---------- */
+        .barra {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+            padding: 20px 0;
+            transition: background .3s ease, padding .3s ease, box-shadow .3s ease;
+        }
+        .barra.fija {
+            padding: 12px 0;
+            background: rgba(0, 52, 99, .82);
+            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+            box-shadow: 0 6px 24px rgba(0, 20, 45, .18);
+        }
+        .barra .contenedor { display: flex; align-items: center; justify-content: space-between; }
+        .marca { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+        .marca:hover .o { animation: salto .5s ease; }
+        .barra nav { display: flex; align-items: center; gap: 28px; }
+        .barra nav a.enlace { position: relative; color: rgba(255, 255, 255, .85); font-size: .95rem; }
+        .barra nav a.enlace::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; border-radius: 2px;
+            background: var(--amarillo); transform: scaleX(0); transition: transform .25s ease;
+        }
+        .barra nav a.enlace:hover { color: #fff; }
+        .barra nav a.enlace:hover::after, .barra nav a.enlace.activo::after { transform: scaleX(1); }
+        .barra nav .boton { padding: 10px 20px; font-size: .9rem; }
+
+        /* ---------- Portada ---------- */
+        .portada {
+            position: relative;
+            background: linear-gradient(160deg, var(--azul-noche) 0%, var(--azul) 55%, var(--azul-medio) 100%);
+            color: #fff;
+            padding: 150px 0 0;
+            overflow: hidden;
+        }
+        /* Luz turquesa que sigue al mouse */
+        .portada::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(600px circle at var(--mx, 80%) var(--my, 20%), rgba(41, 162, 186, .45), transparent 60%);
+            transition: background .1s linear;
+        }
+        .portada .contenedor {
+            position: relative;
+            display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
+        }
+        .etiqueta {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+            background: rgba(255, 255, 255, .12); color: #fff;
+            font-size: .85rem; font-weight: 600; margin-bottom: 22px;
+        }
+        .etiqueta .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); animation: latido 2s ease-in-out infinite; }
+        .portada h1 {
+            font-size: clamp(2.4rem, 5vw, 3.8rem);
+            line-height: 1.08; font-weight: 800; letter-spacing: -1.5px;
+            margin-bottom: 22px;
+        }
+        .portada h1 .linea { display: block; }
+        .portada h1 .resalte { color: var(--amarillo); }
+        .portada p.bajada { font-size: 1.2rem; color: rgba(255, 255, 255, .85); max-width: 30ch; margin-bottom: 34px; }
+        .acciones { display: flex; flex-wrap: wrap; gap: 14px; }
+        .portada-texto { padding-bottom: 110px; }
+
+        /* Teléfonos de la portada: se mueven con el mouse y al bajar */
+        .telefonos { position: relative; height: 560px; align-self: end; perspective: 1200px; }
+        .capa { position: absolute; transition: transform .25s ease-out; will-change: transform; }
+        .capa.atras { left: 8%; top: 70px; }
+        .capa.adelante { right: 6%; top: 10px; }
+        .telefono {
+            width: 270px; border-radius: 40px; padding: 10px;
+            background: #0b1a2e;
+            box-shadow: 0 30px 60px rgba(0, 20, 45, .45);
+        }
+        .telefono img { border-radius: 31px; }
+        .capa.atras .telefono { rotate: -6deg; opacity: .92; animation: flotar 7s ease-in-out infinite; }
+        .capa.adelante .telefono { rotate: 4deg; animation: flotar 6s ease-in-out infinite .8s; }
+
+        /* ---------- Secciones ---------- */
+        section { padding: 110px 0; }
+        .titulo-seccion { text-align: center; max-width: 640px; margin: 0 auto 60px; }
+        .sobre { font-size: .85rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--turquesa); margin-bottom: 12px; }
+        h2 { font-size: clamp(1.9rem, 3.6vw, 2.6rem); line-height: 1.15; letter-spacing: -1px; color: var(--azul-noche); font-weight: 800; }
+        .titulo-seccion p { margin-top: 16px; font-size: 1.1rem; color: var(--texto-suave); }
+
+        /* Tarjetas que se inclinan con el mouse */
+        .inclina { transition: transform .2s ease-out, box-shadow .3s ease; transform-style: preserve-3d; }
+        .inclina:hover { box-shadow: var(--sombra-alta); }
+
+        /* Problema */
+        .problemas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .problema { background: #fff; border-radius: var(--radio); padding: 30px; box-shadow: var(--sombra); }
+        .problema .icono {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: grid; place-items: center; margin-bottom: 18px;
+            transition: transform .3s ease;
+        }
+        .problema:hover .icono { transform: scale(1.12) rotate(-6deg); }
+        .problema h3 { font-size: 1.15rem; color: var(--azul-noche); margin-bottom: 6px; }
+        .problema p { color: var(--texto-suave); }
+
+        /* Como funciona */
+        .como { background: #fff; }
+        .pasos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+        .paso { text-align: center; }
+        .paso .pantalla {
+            position: relative; display: block; width: 100%;
+            background: linear-gradient(180deg, var(--celeste), #fff);
+            border-radius: 28px; padding: 32px 0 0; margin-bottom: 26px;
+            overflow: hidden; height: 400px;
+        }
+        .paso .pantalla img {
+            width: 230px; margin: 0 auto;
+            border-radius: 26px 26px 0 0;
+            box-shadow: 0 -4px 30px rgba(0, 52, 99, .15);
+            transition: transform .5s cubic-bezier(.2, .8, .2, 1);
+        }
+        .paso .pantalla:hover img { transform: translateY(-14px) scale(1.03); }
+        .paso .lupa {
+            position: absolute; right: 16px; bottom: 16px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 999px;
+            background: rgba(0, 52, 99, .85); color: #fff; font-size: .8rem; font-weight: 600;
+            opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease;
+        }
+        .paso .pantalla:hover .lupa, .paso .pantalla:focus-visible .lupa { opacity: 1; transform: none; }
+        .numero {
+            display: inline-grid; place-items: center;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--azul); color: #fff; font-weight: 700; font-size: .9rem;
+            margin-bottom: 12px;
+        }
+        .paso h3 { font-size: 1.25rem; color: var(--azul-noche); margin-bottom: 8px; }
+        .paso p { color: var(--texto-suave); max-width: 32ch; margin: 0 auto; }
+
+        /* Semáforo */
+        .semaforo { display: flex; justify-content: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+        .luz { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; }
+        .luz::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: latido 3s ease-in-out infinite; }
+        .luz.v { color: var(--verde); } .luz.a { color: #e5a23a; } .luz.r { color: var(--rojo); }
+        .luz.a::before { animation-delay: 1s; } .luz.r::before { animation-delay: 2s; }
+        .luz span { color: var(--texto-suave); }
+
+        /* Franja de equipos */
+        .franja {
+            margin-top: 80px; padding: 34px 40px; border-radius: var(--radio);
+            background: var(--fondo);
+            display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap;
+        }
+        .franja strong { font-size: 1.2rem; color: var(--azul-noche); }
+        .franja p { color: var(--texto-suave); }
+        .equipos { display: flex; gap: 22px; flex-wrap: wrap; }
+        .equipo { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: .85rem; color: var(--texto-suave); }
+        .equipo svg { width: 30px; height: 30px; color: var(--azul); transition: transform .3s ease, color .3s ease; }
+        .equipo:hover svg { transform: translateY(-4px); color: var(--turquesa); }
+
+        /* Planes */
+        .planes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+        .plan {
+            position: relative; display: flex; flex-direction: column;
+            background: #fff; border-radius: var(--radio); padding: 34px 30px; box-shadow: var(--sombra);
+        }
+        .plan.destacado { background: linear-gradient(160deg, var(--azul-noche), var(--azul)); color: #fff; }
+        .plan .cinta {
+            position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+            background: var(--amarillo); color: var(--azul-noche);
+            font-size: .75rem; font-weight: 700; padding: 5px 14px; border-radius: 999px; white-space: nowrap;
+        }
+        .plan .nombre { font-weight: 700; font-size: .85rem; letter-spacing: 1.2px; text-transform: uppercase; color: var(--turquesa); }
+        .plan.destacado .nombre { color: var(--amarillo); }
+        .plan .precio { margin: 10px 0 4px; color: var(--azul-noche); font-size: 2.3rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+        .plan .precio small { font-size: .95rem; font-weight: 600; letter-spacing: 0; color: var(--texto-suave); }
+        .plan.destacado .precio { color: #fff; }
+        .plan.destacado .precio small { color: rgba(255, 255, 255, .75); }
+        .plan .para { color: var(--texto-suave); margin-bottom: 22px; font-size: .95rem; }
+        .plan.destacado .para { color: rgba(255, 255, 255, .8); }
+        .plan ul { list-style: none; display: grid; gap: 10px; margin-bottom: 28px; font-size: .95rem; }
+        .plan li { display: flex; gap: 10px; align-items: flex-start; }
+        .plan li svg { flex: none; width: 18px; height: 18px; margin-top: 4px; color: var(--verde); }
+        .plan .boton { margin-top: auto; width: 100%; }
+        .nota-precios { text-align: center; margin-top: 30px; font-size: .9rem; color: var(--texto-suave); }
+
+        /* Llamado final */
+        .final { padding: 0 0 110px; }
+        .final .caja {
+            position: relative; overflow: hidden;
+            text-align: center; color: #fff; border-radius: 32px; padding: 70px 30px;
+            background: linear-gradient(160deg, var(--azul-noche), var(--azul));
+        }
+        .final .caja::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(500px circle at var(--mx, 80%) var(--my, 0%), rgba(41, 162, 186, .5), transparent 70%);
+        }
+        .final .caja > * { position: relative; }
+        .final h2 { color: #fff; margin-bottom: 14px; }
+        .final p { color: rgba(255, 255, 255, .82); font-size: 1.1rem; margin-bottom: 32px; }
+
+        /* Pie */
+        footer { padding: 40px 0; border-top: 1px solid #dde9ee; font-size: .9rem; color: var(--texto-suave); }
+        footer .contenedor { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+        footer .marca { color: var(--azul-noche); font-size: 1.15rem; }
+
+        /* ---------- Ventanas emergentes ---------- */
+        dialog {
+            margin: auto; border: 0; padding: 0; background: transparent; color: var(--texto);
+            max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px);
+            overflow: visible;
+        }
+        dialog::backdrop { background: rgba(0, 25, 50, .6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+        dialog[open] { animation: aparecer .35s cubic-bezier(.2, .8, .2, 1); }
+        dialog[open]::backdrop { animation: desvanecer .3s ease; }
+        .cerrar {
+            position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%;
+            display: grid; place-items: center; background: var(--celeste); color: var(--azul);
+            transition: transform .2s ease;
+        }
+        .cerrar:hover { transform: rotate(90deg); }
+
+        /* Ventana de contacto */
+        .ventana {
+            position: relative; width: 440px; max-width: 100%;
+            background: #fff; border-radius: 28px; padding: 40px 32px 32px; text-align: center;
+            box-shadow: 0 30px 80px rgba(0, 20, 45, .35);
+        }
+        .ventana .sello {
+            width: 64px; height: 64px; border-radius: 20px; margin: 0 auto 18px;
+            display: grid; place-items: center; font-size: 2rem; font-weight: 800;
+            background: var(--azul); color: var(--amarillo);
+        }
+        .ventana h3 { font-size: 1.5rem; color: var(--azul-noche); letter-spacing: -.5px; margin-bottom: 6px; }
+        .ventana p { color: var(--texto-suave); margin-bottom: 22px; }
+        .ventana .correo-caja {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            background: var(--fondo); border: 1px solid #dde9ee; border-radius: 14px;
+            padding: 10px 10px 10px 16px; margin-bottom: 14px; text-align: left;
+        }
+        .ventana .correo-caja span { font-weight: 600; color: var(--azul-noche); overflow-wrap: anywhere; }
+        .ventana .correo-caja .boton { padding: 8px 14px; font-size: .85rem; flex: none; }
+        .ventana .boton-azul { width: 100%; }
+
+        /* Ventana con la captura en grande */
+        .visor { position: relative; }
+        .visor img {
+            width: auto; max-width: min(360px, calc(100vw - 32px)); max-height: calc(100dvh - 120px);
+            border-radius: 30px; box-shadow: 0 30px 80px rgba(0, 20, 45, .5);
+        }
+        .visor p { text-align: center; color: #fff; margin-top: 14px; font-weight: 600; }
+        .visor .cerrar { top: -12px; right: -12px; background: #fff; box-shadow: var(--sombra-alta); z-index: 1; }
+
+        /* Aviso "copiado" */
+        .aviso {
+            position: fixed; left: 50%; bottom: 28px; z-index: 100;
+            transform: translate(-50%, 30px); opacity: 0;
+            background: var(--azul-noche); color: #fff; padding: 12px 20px; border-radius: 999px;
+            font-size: .9rem; font-weight: 600; box-shadow: var(--sombra-alta);
+            transition: opacity .3s ease, transform .3s ease; pointer-events: none;
+        }
+        .aviso.visible { opacity: 1; transform: translate(-50%, 0); }
+
+        /* ---------- Animaciones ---------- */
+        /* Al bajar la página, cada bloque aparece suavemente.
+           Solo se esconden si el JavaScript está activo (clase "js"). */
+        .js .aparece { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .8, .2, 1); transition-delay: var(--retraso, 0s); }
+        .js .aparece.visto { opacity: 1; transform: none; }
+        .js .portada .aparece { transition-duration: .9s; }
+        .js .inclina.listo { transition: transform .2s ease-out, box-shadow .3s ease; transition-delay: 0s; }
+
+        @keyframes flotar { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+        @keyframes latido { 0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; } 50% { box-shadow: 0 0 0 5px transparent; opacity: .6; } }
+        @keyframes salto { 0%, 100% { transform: none; } 40% { transform: translateY(-6px) rotate(-8deg); } }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(24px) scale(.96); } to { opacity: 1; transform: none; } }
+        @keyframes desvanecer { from { opacity: 0; } to { opacity: 1; } }
+        .etiqueta .punto { color: var(--verde); }
+
+        /* Si la persona pidió menos movimiento en su equipo, se apagan las animaciones */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+            .js .aparece { opacity: 1; transform: none; }
+        }
+
+        /* ---------- Celular y tablet ---------- */
+        @media (max-width: 980px) {
+            .planes { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; gap: 34px; }
+        }
+        @media (max-width: 900px) {
+            .barra nav a.enlace { display: none; }
+            .portada { padding-top: 120px; }
+            .portada .contenedor { grid-template-columns: 1fr; text-align: center; }
+            .portada p.bajada { margin-left: auto; margin-right: auto; }
+            .acciones { justify-content: center; }
+            .portada-texto { padding-bottom: 20px; }
+            .telefonos { height: 430px; max-width: 420px; width: 100%; margin: 0 auto; }
+            .telefono { width: 205px; border-radius: 32px; padding: 8px; }
+            .telefono img { border-radius: 25px; }
+            .capa.atras { left: 0; top: 60px; }
+            .capa.adelante { right: 0; top: 0; }
+            .problemas, .pasos { grid-template-columns: 1fr; }
+            .pasos { gap: 60px; }
+            section { padding: 80px 0; }
+            .franja { padding: 28px; justify-content: center; text-align: center; }
+            .paso .lupa { opacity: 1; transform: none; }
+        }
+        @media (max-width: 480px) {
+            .contenedor { padding: 0 16px; }
+            .barra nav .boton { padding: 9px 16px; }
+            .telefonos { height: 360px; }
+            .telefono { width: 170px; }
+            .acciones .boton { width: 100%; }
+            .ventana { padding: 36px 22px 24px; }
+            .ventana .correo-caja { flex-direction: column; align-items: stretch; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <script>document.documentElement.classList.add('js');</script>
+
+    <div class="avance" id="avance"></div>
+
+    <!-- Barra superior -->
+    <header class="barra" id="barra">
+        <div class="contenedor">
+            <a class="marca" href="#">Gesti<span class="o">Ó</span>nate</a>
+            <nav>
+                <a class="enlace" href="#problema">El problema</a>
+                <a class="enlace" href="#como-funciona">Cómo funciona</a>
+                <a class="enlace" href="#planes">Planes</a>
+                <button class="boton boton-principal" data-abrir="contacto">Contáctanos</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Portada: la propuesta de valor -->
+    <section class="portada" id="portada">
+        <div class="contenedor">
+            <div class="portada-texto">
+                <span class="etiqueta aparece"><span class="punto"></span>Para restaurantes de menú del día</span>
+                <h1>
+                    <span class="linea aparece" style="--retraso:.1s">Pedidos en orden.</span>
+                    <span class="linea aparece resalte" style="--retraso:.25s">Stock al día.</span>
+                </h1>
+                <p class="bajada aparece" style="--retraso:.4s">La cocina ve cada pedido por hora de llegada y el sistema avisa antes de que un ingrediente se acabe.</p>
+                <div class="acciones aparece" style="--retraso:.55s">
+                    <button class="boton boton-principal" data-abrir="contacto">Quiero probarlo</button>
+                    <a class="boton boton-borde" href="#como-funciona">Ver cómo funciona</a>
+                </div>
+            </div>
+            <div class="telefonos" aria-hidden="true">
+                <div class="capa atras" data-profundidad="12">
+                    <div class="telefono aparece" style="--retraso:.3s"><img src="img/garzon.webp" alt="" width="585" height="1266"></div>
+                </div>
+                <div class="capa adelante" data-profundidad="24">
+                    <div class="telefono aparece" style="--retraso:.15s"><img src="img/cocina.webp" alt="" width="585" height="1266"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- El problema -->
+    <section id="problema">
+        <div class="contenedor">
+            <div class="titulo-seccion aparece">
+                <p class="sobre">El problema</p>
+                <h2>Dos de la tarde, hora punta.</h2>
+                <p>Con los pedidos anotados en papel, el desorden llega justo cuando hay más clientes.</p>
+            </div>
+            <div class="problemas">
+                <div class="problema inclina aparece">
+                    <div class="icono" style="background:#FFF0E6">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF914D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l3 3v15H5V3z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+                    </div>
+                    <h3>Pedidos desordenados</h3>
+                    <p>Un pedido que llegó después se cocina antes que otro que lleva más tiempo esperando.</p>
+                </div>
+                <div class="problema inclina aparece" style="--retraso:.12s">
+                    <div class="icono" style="background:#FFF6E6">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E5A23A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>
+                    </div>
+                    <h3>Ingredientes que se acaban</h3>
+                    <p>Nadie sabe que falta algo hasta que el pedido ya está en la cocina.</p>
+                </div>
+                <div class="problema inclina aparece" style="--retraso:.24s">
+                    <div class="icono" style="background:#FFE9E9">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF3131" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                    </div>
+                    <h3>Clientes que cambian de plato</h3>
+                    <p>El garzón vuelve a la mesa a pedir otro plato o a cancelar el pedido.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- La solución -->
+    <section id="como-funciona" class="como">
+        <div class="contenedor">
+            <div class="titulo-seccion aparece">
+                <p class="sobre">La solución</p>
+                <h2>Así funciona Gesti<span style="color:var(--naranjo)">Ó</span>nate</h2>
+                <p>Tres pantallas, una para cada rol del restaurante.</p>
+            </div>
+            <div class="pasos">
+                <div class="paso aparece">
+                    <button class="pantalla" data-ver="img/nuevo_pedido_completo.webp" data-titulo="Garzón: nuevo pedido" aria-label="Ver en grande la pantalla del garzón">
+                        <img src="img/nuevo_pedido.webp" alt="Pantalla del garzón tomando un pedido" loading="lazy" width="585" height="938">
+                        <span class="lupa">Ver en grande</span>
+                    </button>
+                    <span class="numero">1</span>
+                    <h3>El garzón toma el pedido</h3>
+                    <p>Desde el celular. El sistema descuenta los ingredientes según la receta y, si uno no alcanza, el plato aparece agotado.</p>
+                </div>
+                <div class="paso aparece" style="--retraso:.12s">
+                    <button class="pantalla" data-ver="img/cocina.webp" data-titulo="Cocina: pedidos en orden de llegada" aria-label="Ver en grande la pantalla de la cocina">
+                        <img src="img/cocina.webp" alt="Pantalla de la cocina con los pedidos en orden de llegada" loading="lazy" width="585" height="1266">
+                        <span class="lupa">Ver en grande</span>
+                    </button>
+                    <span class="numero">2</span>
+                    <h3>La cocina ve la fila</h3>
+                    <p>Los pedidos aparecen por hora de llegada, con un semáforo según el tiempo de preparación.</p>
+                    <div class="semaforo">
+                        <span class="luz v"><span>A tiempo</span></span>
+                        <span class="luz a"><span>Por vencer</span></span>
+                        <span class="luz r"><span>Atrasado</span></span>
+                    </div>
+                </div>
+                <div class="paso aparece" style="--retraso:.24s">
+                    <button class="pantalla" data-ver="img/admin.webp" data-titulo="Administrador: panel del restaurante" aria-label="Ver en grande el panel del administrador">
+                        <img src="img/admin.webp" alt="Panel del administrador" loading="lazy" width="585" height="1266">
+                        <span class="lupa">Ver en grande</span>
+                    </button>
+                    <span class="numero">3</span>
+                    <h3>El administrador controla el stock</h3>
+                    <p>Recibe alertas de stock bajo y, al registrar una compra, los platos agotados vuelven al menú.</p>
+                </div>
+            </div>
+
+            <div class="franja aparece">
+                <div>
+                    <strong>Funciona con lo que ya tienes</strong>
+                    <p>Se usa desde el navegador, sin instalar nada.</p>
+                </div>
+                <div class="equipos">
+                    <div class="equipo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Celular
+                    </div>
+                    <div class="equipo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Tablet
+                    </div>
+                    <div class="equipo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg>Computador
+                    </div>
+                    <div class="equipo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Smart TV
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Planes de pago (precios referenciales, por confirmar) -->
+    <section id="planes">
+        <div class="contenedor">
+            <div class="titulo-seccion aparece">
+                <p class="sobre">Planes</p>
+                <h2>Un pago mensual por local</h2>
+                <p>Sin comisión por venta y sin costo de instalación.</p>
+            </div>
+            <div class="planes">
+                <div class="plan inclina aparece">
+                    <span class="nombre">Cocina</span>
+                    <div class="precio">$14.990 <small>/mes + IVA</small></div>
+                    <p class="para">Para ordenar los pedidos en hora punta.</p>
+                    <ul>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Pedidos desde el celular</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Pantalla de cocina por orden de llegada</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Semáforo de tiempos</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Hasta 4 usuarios</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Soporte por correo</li>
+                    </ul>
+                    <button class="boton boton-suave" data-abrir="contacto" data-plan="Cocina">Elegir Cocina</button>
+                </div>
+                <div class="plan destacado inclina aparece" style="--retraso:.12s">
+                    <span class="cinta">Recomendado</span>
+                    <span class="nombre">Cocina + Stock</span>
+                    <div class="precio">$24.990 <small>/mes + IVA</small></div>
+                    <p class="para">Pedidos en orden y control de ingredientes.</p>
+                    <ul>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Todo lo del plan Cocina</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Inventario que se descuenta por receta</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Platos agotados automáticamente</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Alertas de stock bajo</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Compras y mermas</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Usuarios ilimitados</li>
+                    </ul>
+                    <button class="boton boton-principal" data-abrir="contacto" data-plan="Cocina + Stock">Elegir Cocina + Stock</button>
+                </div>
+                <div class="plan inclina aparece" style="--retraso:.24s">
+                    <span class="nombre">Completo</span>
+                    <div class="precio">$34.990 <small>/mes + IVA</small></div>
+                    <p class="para">Para medir y mejorar la atención.</p>
+                    <ul>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Todo lo del plan Cocina + Stock</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Tiempo real vs. estimado de cada pedido</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Historial completo de movimientos</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Capacitación del equipo en el local</li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Soporte prioritario</li>
+                    </ul>
+                    <button class="boton boton-suave" data-abrir="contacto" data-plan="Completo">Elegir Completo</button>
+                </div>
+            </div>
+            <p class="nota-precios aparece">Todos los planes incluyen respaldo diario y actualizaciones. Precios referenciales en pesos chilenos.</p>
+        </div>
+    </section>
+
+    <!-- Llamado a la acción -->
+    <section id="contacto" class="final">
+        <div class="contenedor">
+            <div class="caja aparece" id="caja-final">
+                <h2>¿Tienes un restaurante de menú del día?</h2>
+                <p>Escríbenos y te mostramos GestiÓnate funcionando.</p>
+                <button class="boton boton-principal" data-abrir="contacto">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                    Escríbenos
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="contenedor">
+            <div>
+                <a class="marca" href="#">Gesti<span style="color:var(--naranjo)">Ó</span>nate</a>
+                <p>Tu stock, claro y al día.</p>
+            </div>
+            <div>
+                <p>Benjamín Mayea y Benjamín Ibacache</p>
+                <p>Técnico en Programación y Análisis de Sistemas · AIEP La Serena · 2026</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Ventana emergente: contacto -->
+    <dialog id="contacto-ventana" aria-labelledby="contacto-titulo">
+        <div class="ventana">
+            <button class="cerrar" data-cerrar aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+            <div class="sello">Ó</div>
+            <h3 id="contacto-titulo">Conversemos</h3>
+            <p id="contacto-texto">Cuéntanos de tu restaurante y te mostramos GestiÓnate funcionando.</p>
+            <div class="correo-caja">
+                <span>gestionate2026@gmail.com</span>
+                <button class="boton boton-suave" id="copiar">Copiar</button>
+            </div>
+            <a class="boton boton-azul" id="enlace-correo" href="mailto:gestionate2026@gmail.com?subject=Quiero%20conocer%20Gesti%C3%93nate">Abrir mi correo</a>
+        </div>
+    </dialog>
+
+    <!-- Ventana emergente: captura en grande -->
+    <dialog id="visor-ventana" aria-label="Captura de la aplicación">
+        <div class="visor">
+            <button class="cerrar" data-cerrar aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+            <img id="visor-imagen" src="" alt="">
+            <p id="visor-titulo"></p>
+        </div>
+    </dialog>
+
+    <div class="aviso" id="aviso" role="status">Correo copiado</div>
+
+    <script>
+        // ¿La persona pidió menos movimiento en su equipo? Entonces no movemos nada con el mouse.
+        const pocoMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const conMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+        // 1. Los bloques aparecen cuando entran en pantalla
+        const bloques = document.querySelectorAll('.aparece');
+        if ('IntersectionObserver' in window) {
+            const observador = new IntersectionObserver(function (entradas) {
+                entradas.forEach(function (entrada) {
+                    if (entrada.isIntersecting) {
+                        const b = entrada.target;
+                        b.classList.add('visto');
+                        observador.unobserve(b);
+                        // cuando termina de aparecer, la tarjeta ya puede reaccionar rápido al mouse
+                        setTimeout(function () { b.classList.add('listo'); }, 1100);
+                    }
+                });
+            }, { threshold: 0.15 });
+            bloques.forEach(function (b) { observador.observe(b); });
+        } else {
+            bloques.forEach(function (b) { b.classList.add('visto'); });
+        }
+
+        // 2. Barra de arriba fija, barra de avance y enlace del menú activo
+        const barra = document.getElementById('barra');
+        const avance = document.getElementById('avance');
+        const enlaces = document.querySelectorAll('.barra nav a.enlace');
+        const capas = document.querySelectorAll('.capa');
+        let mouseX = 0, mouseY = 0;
+
+        function moverCapas(bajado) {
+            capas.forEach(function (capa) {
+                const p = Number(capa.dataset.profundidad);
+                const y = -bajado * p / 120 + mouseY * p;
+                const x = mouseX * p;
+                capa.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+            });
+        }
+
+        function alBajar() {
+            const bajado = window.scrollY;
+            barra.classList.toggle('fija', bajado > 30);
+            const total = document.documentElement.scrollHeight - window.innerHeight;
+            avance.style.transform = 'scaleX(' + (total > 0 ? bajado / total : 0) + ')';
+            enlaces.forEach(function (enlace) {
+                const seccion = document.querySelector(enlace.getAttribute('href'));
+                const caja = seccion.getBoundingClientRect();
+                enlace.classList.toggle('activo', caja.top < 140 && caja.bottom > 140);
+            });
+            if (!pocoMovimiento && bajado < 900) moverCapas(bajado);
+        }
+        window.addEventListener('scroll', alBajar, { passive: true });
+        alBajar();
+
+        // 3. Reacciones al mouse (solo en computador)
+        if (conMouse && !pocoMovimiento) {
+            // La luz de la portada y del recuadro final sigue al mouse
+            ['portada', 'caja-final'].forEach(function (id) {
+                const zona = document.getElementById(id);
+                zona.addEventListener('mousemove', function (e) {
+                    const caja = zona.getBoundingClientRect();
+                    zona.style.setProperty('--mx', (e.clientX - caja.left) + 'px');
+                    zona.style.setProperty('--my', (e.clientY - caja.top) + 'px');
+                });
+            });
+
+            // Los teléfonos se mueven un poco hacia el mouse
+            document.getElementById('portada').addEventListener('mousemove', function (e) {
+                mouseX = (e.clientX / window.innerWidth - 0.5);
+                mouseY = (e.clientY / window.innerHeight - 0.5);
+                moverCapas(window.scrollY);
+            });
+
+            // Las tarjetas se inclinan hacia donde está el mouse
+            document.querySelectorAll('.inclina').forEach(function (tarjeta) {
+                tarjeta.addEventListener('mousemove', function (e) {
+                    const caja = tarjeta.getBoundingClientRect();
+                    const x = (e.clientX - caja.left) / caja.width - 0.5;
+                    const y = (e.clientY - caja.top) / caja.height - 0.5;
+                    tarjeta.style.transform = 'perspective(900px) rotateX(' + (-y * 6) + 'deg) rotateY(' + (x * 6) + 'deg) translateY(-4px)';
+                });
+                tarjeta.addEventListener('mouseleave', function () {
+                    tarjeta.style.transform = '';
+                });
+            });
+        }
+
+        // 4. Ventanas emergentes
+        const ventanaContacto = document.getElementById('contacto-ventana');
+        const ventanaVisor = document.getElementById('visor-ventana');
+        const textoContacto = document.getElementById('contacto-texto');
+        const enlaceCorreo = document.getElementById('enlace-correo');
+        const asuntoBase = 'Quiero conocer GestiÓnate';
+
+        // Abre la ventana de contacto (si viene de un plan, lo pone en el asunto del correo)
+        document.querySelectorAll('[data-abrir="contacto"]').forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                const plan = boton.dataset.plan;
+                const asunto = plan ? asuntoBase + ' (plan ' + plan + ')' : asuntoBase;
+                textoContacto.textContent = plan
+                    ? 'Te interesa el plan ' + plan + '. Escríbenos y te contamos los detalles.'
+                    : 'Cuéntanos de tu restaurante y te mostramos GestiÓnate funcionando.';
+                enlaceCorreo.href = 'mailto:gestionate2026@gmail.com?subject=' + encodeURIComponent(asunto);
+                ventanaContacto.showModal();
+            });
+        });
+
+        // Abre la captura de la app en grande
+        document.querySelectorAll('[data-ver]').forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                document.getElementById('visor-imagen').src = boton.dataset.ver;
+                document.getElementById('visor-imagen').alt = boton.dataset.titulo;
+                document.getElementById('visor-titulo').textContent = boton.dataset.titulo;
+                ventanaVisor.showModal();
+            });
+        });
+
+        // Cierra con la X o al hacer clic fuera de la ventana
+        document.querySelectorAll('dialog').forEach(function (ventana) {
+            ventana.addEventListener('click', function (e) {
+                if (e.target === ventana || e.target.closest('[data-cerrar]')) ventana.close();
+            });
+        });
+
+        // Copia el correo y muestra un aviso
+        const aviso = document.getElementById('aviso');
+        document.getElementById('copiar').addEventListener('click', function () {
+            const correo = 'gestionate2026@gmail.com';
+            function avisar(texto) {
+                aviso.textContent = texto;
+                aviso.classList.add('visible');
+                setTimeout(function () { aviso.classList.remove('visible'); }, 2000);
+            }
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(correo).then(function () { avisar('Correo copiado'); }, function () { avisar(correo); });
+            } else {
+                avisar(correo);
+            }
+        });
+    </script>
+</body>
+</html>
